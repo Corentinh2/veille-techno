@@ -8,7 +8,23 @@ argument-hint: "[date de fin AAAA-MM-JJ, par défaut aujourd'hui]"
 Tu produis l'édition de la semaine du site de veille technologique de ce dépôt (Astro, articles Markdown dans `src/content/articles/`).
 Le lecteur est un alternant en administration systèmes et réseaux : Windows, Linux, virtualisation (hyperviseurs), Terraform/Ansible, Nextcloud, réseau. Le site est montré à son tuteur et à un jury : la rigueur factuelle prime sur la quantité.
 
-Date de fin de la période : `$ARGUMENTS` si fourni, sinon la date du jour. La période couverte est **les 7 jours qui précèdent cette date (inclus)**.
+Arguments reçus : `$ARGUMENTS`
+
+- Une date `AAAA-MM-JJ` → date de fin de la période.
+- Le mot `auto` → **mode automatique** (voir ci-dessous) ; la date de fin est alors le **dimanche précédent** la date du jour, pour couvrir la semaine ISO écoulée (lundi → dimanche).
+- Rien → date de fin = date du jour.
+
+La période couverte est **les 7 jours qui se terminent à la date de fin (incluse)**.
+
+### Mode automatique (`auto`)
+
+Utilisé par une routine planifiée chaque lundi, sans personne pour répondre :
+
+- Ne pose **aucune question** et n'attends aucune confirmation : prends la décision la plus prudente et note-la dans la description de la pull request.
+- Si `src/content/articles/AAAA-sXX/` existe déjà sur `main`, n'écris rien : termine en expliquant que l'édition existe déjà.
+- À l'étape 2, le tableau récapitulatif va dans la description de la pull request au lieu d'être affiché.
+- L'étape 5 est remplacée par la section « 5 bis » en fin de fichier.
+- **Ne pousse jamais sur `main`.**
 
 Suis les étapes dans l'ordre et tiens une liste de tâches.
 
@@ -116,3 +132,15 @@ Corrige tout écart. Si un fait ne peut pas être confirmé, retire-le ou signal
 2. Montre-moi `git status` et un résumé de l'édition (nombre de sujets par niveau et par thème).
 3. **Propose** un message de commit du type `veille: semaine XX – AAAA (N sujets)` et demande-moi confirmation avant de committer.
 4. **Ne pousse jamais** (`git push`) sans mon accord explicite.
+
+## 5 bis. Mode automatique : build et pull request
+
+1. Lance `npm ci` puis `npm run build`, et corrige jusqu'à ce que le build passe. Si tu n'y arrives pas, ouvre quand même la pull request en la marquant comme brouillon (*draft*) et explique l'erreur.
+2. Crée la branche `veille/AAAA-sXX` à partir de `main`, ajoute uniquement les fichiers de l'édition (`src/content/articles/AAAA-sXX/` et `src/content/editions/AAAA-sXX.md`) et committe avec le message `veille: semaine XX – AAAA (N sujets)`.
+3. Pousse **cette branche seulement**, puis ouvre une pull request vers `main` intitulée « Veille semaine XX – AAAA ». Sa description contient, en français :
+   - le tableau récapitulatif des sujets (titre, thème, 4 notes, total, niveau) ;
+   - le résumé par niveau et par thème ;
+   - le tableau de vérification « fait → source → ✅ / ✏️ / ❌ » ;
+   - les sujets écartés et pourquoi ;
+   - les points à relire en priorité (faits non confirmés, sources inaccessibles, sujets limites sur la période).
+4. Ne fusionne pas la pull request : c'est moi qui la relis et la valide.
