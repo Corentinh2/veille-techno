@@ -1,0 +1,223 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import ArticleCard from '../../components/ArticleCard.astro';
+import { CATEGORIES, CATEGORY_LABELS, IMPORTANCES, IMPORTANCE_META, byDateThenImportance } from '../../lib/veille';
+
+const articles = (await getCollection('articles')).sort(byDateThenImportance);
+---
+
+<Base title="Articles" description="Tous les articles de veille, filtrables par thème et par niveau d'importance.">
+  <h1>Articles</h1>
+  <p class="lead">Tous les sujets de veille. Filtre par thème et par niveau d'importance.</p>
+
+  <form class="filters card" id="filtres" onsubmit="return false">
+    <fieldset>
+      <legend>Thème</legend>
+      <div class="chips">
+        {
+          CATEGORIES.map((c) => (
+            <label class="chip">
+              <input type="checkbox" name="theme" value={c} />
+              <span>{CATEGORY_LABELS[c]}</span>
+            </label>
+          ))
+        }
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Importance</legend>
+      <div class="chips">
+        {
+          IMPORTANCES.map((i) => (
+            <label class={`chip chip-${i}`}>
+              <input type="checkbox" name="importance" value={i} />
+              <span>
+                <span aria-hidden="true">{IMPORTANCE_META[i].emoji}</span> {IMPORTANCE_META[i].label}
+              </span>
+            </label>
+          ))
+        }
+      </div>
+    </fieldset>
+    <div class="row">
+      <label class="search">
+        <span class="visually-hidden">Rechercher</span>
+        <input type="search" name="q" placeholder="Rechercher (titre, CVE, mot-clé…)" />
+      </label>
+      <button type="button" id="reset">Réinitialiser</button>
+    </div>
+    <p class="count muted" aria-live="polite" id="compteur">{articles.length} article(s)</p>
+  </form>
+
+  <div class="grid" id="liste">
+    {articles.map((a) => <ArticleCard article={a} headingLevel="h2" />)}
+  </div>
+  <p class="empty muted" id="vide" hidden>Aucun article ne correspond à ces filtres.</p>
+</Base>
+
+<script>
+  const form = document.getElementById('filtres') as HTMLFormElement;
+  const cards = Array.from(document.querySelectorAll<HTMLElement>('#liste > article'));
+  const counter = document.getElementById('compteur')!;
+  const empty = document.getElementById('vide')!;
+  const search = form.querySelector<HTMLInputElement>('input[name="q"]')!;
+
+  const checked = (name: string) =>
+    Array.from(form.querySelectorAll<HTMLInputElement>(`input[name="${name}"]:checked`)).map((i) => i.value);
+
+  function apply(updateUrl = true) {
+    const themes = checked('theme');
+    const imps = checked('importance');
+    const q = search.value.trim().toLowerCase();
+    let visible = 0;
+    for (const card of cards) {
+      const ok =
+        (!themes.length || themes.includes(card.dataset.category!)) &&
+        (!imps.length || imps.includes(card.dataset.importance!)) &&
+        (!q || card.dataset.search!.includes(q));
+      card.hidden = !ok;
+      if (ok) visible++;
+    }
+    counter.textContent = `${visible} article${visible > 1 ? 's' : ''} sur ${cards.length}`;
+    empty.hidden = visible > 0;
+
+    if (updateUrl) {
+      const params = new URLSearchParams();
+      if (themes.length) params.set('theme', themes.join(','));
+      if (imps.length) params.set('importance', imps.join(','));
+      if (q) params.set('q', q);
+      const qs = params.toString();
+      history.replaceState(null, '', qs ? `?${qs}` : location.pathname);
+    }
+  }
+
+  // Filtres initiaux depuis l'URL (liens de l'accueil, partage).
+  const params = new URLSearchParams(location.search);
+  for (const name of ['theme', 'importance']) {
+    const values = (params.get(name) ?? '').split(',').filter(Boolean);
+    form.querySelectorAll<HTMLInputElement>(`input[name="${name}"]`).forEach((i) => {
+      i.checked = values.includes(i.value);
+    });
+  }
+  search.value = params.get('q') ?? '';
+
+  form.addEventListener('input', () => apply());
+  document.getElementById('reset')!.addEventListener('click', () => {
+    form.reset();
+    apply();
+  });
+  apply(false);
+</script>
+
+<style>
+  .filters {
+    display: grid;
+    gap: 0.9rem;
+    margin: 1.5rem 0;
+  }
+  fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
+  }
+  legend {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 0.4rem;
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .chip input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .chip span {
+    display: inline-block;
+    padding: 0.3rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    font-size: 0.9rem;
+    cursor: pointer;
+    user-select: none;
+  }
+  .chip span span {
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+  .chip:hover > span {
+    border-color: var(--accent);
+  }
+  .chip input:focus-visible + span {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .chip input:checked + span {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .chip-critique input:checked + span {
+    background: var(--critique-soft);
+    border-color: var(--critique);
+    color: var(--critique);
+  }
+  .chip-eleve input:checked + span {
+    background: var(--eleve-soft);
+    border-color: var(--eleve);
+    color: var(--eleve);
+  }
+  .chip-moyen input:checked + span {
+    background: var(--moyen-soft);
+    border-color: var(--moyen);
+    color: var(--moyen);
+  }
+  .chip-info input:checked + span {
+    background: var(--info-soft);
+    border-color: var(--info);
+    color: var(--info);
+  }
+  .row {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .search {
+    flex: 1;
+    min-width: 200px;
+  }
+  .search input,
+  #reset {
+    font: inherit;
+    font-size: 0.95rem;
+    padding: 0.45rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+  }
+  .search input {
+    width: 100%;
+  }
+  #reset {
+    cursor: pointer;
+  }
+  #reset:hover {
+    background: var(--surface-2);
+  }
+  .count {
+    margin: 0;
+    font-size: 0.9rem;
+  }
+  #liste > :global(article[hidden]) {
+    display: none;
+  }
+</style>

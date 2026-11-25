@@ -1,0 +1,179 @@
+---
+import Base from '../layouts/Base.astro';
+
+type Source = { nom: string; url: string; description: string; themes: string[]; langue: 'FR' | 'EN' };
+
+const groupes: { titre: string; sources: Source[] }[] = [
+  {
+    titre: 'Alertes officielles',
+    sources: [
+      {
+        nom: 'CERT-FR (ANSSI)',
+        url: 'https://www.cert.ssi.gouv.fr/',
+        description: 'Alertes et avis de sécurité du centre gouvernemental de veille français.',
+        themes: ['Cybersécurité'],
+        langue: 'FR',
+      },
+      {
+        nom: 'CISA KEV',
+        url: 'https://www.cisa.gov/known-exploited-vulnerabilities-catalog',
+        description:
+          'Catalogue américain des vulnérabilités activement exploitées. Une entrée ici = urgence maximale.',
+        themes: ['Cybersécurité'],
+        langue: 'EN',
+      },
+    ],
+  },
+  {
+    titre: 'Presse spécialisée',
+    sources: [
+      {
+        nom: 'IT-Connect',
+        url: 'https://www.it-connect.fr/',
+        description: 'Actualités et tutoriels pour les admins systèmes et réseaux (Windows, Linux, sécurité).',
+        themes: ['Réseau & OS', 'Cybersécurité'],
+        langue: 'FR',
+      },
+      {
+        nom: 'LeMagIT',
+        url: 'https://www.lemagit.fr/',
+        description: 'Presse IT professionnelle française : infrastructure, cloud, sécurité, IA.',
+        themes: ['Infra, Cloud & DevOps', 'Cybersécurité', 'IA'],
+        langue: 'FR',
+      },
+      {
+        nom: 'BleepingComputer',
+        url: 'https://www.bleepingcomputer.com/',
+        description: 'Actualité sécurité très réactive : failles, rançongiciels, Patch Tuesday.',
+        themes: ['Cybersécurité', 'Réseau & OS'],
+        langue: 'EN',
+      },
+      {
+        nom: 'The Hacker News',
+        url: 'https://thehackernews.com/',
+        description: 'Vulnérabilités, campagnes d’attaque et menaces émergentes.',
+        themes: ['Cybersécurité'],
+        langue: 'EN',
+      },
+    ],
+  },
+  {
+    titre: 'Blogs éditeurs',
+    sources: [
+      {
+        nom: 'Blog HashiCorp',
+        url: 'https://www.hashicorp.com/blog',
+        description: 'Nouveautés Terraform, Vault, Packer et annonces de l’éditeur.',
+        themes: ['Infra, Cloud & DevOps'],
+        langue: 'EN',
+      },
+      {
+        nom: 'Blog Red Hat',
+        url: 'https://www.redhat.com/en/blog',
+        description: 'RHEL, OpenShift, conteneurs et sécurité Linux.',
+        themes: ['Réseau & OS', 'Infra, Cloud & DevOps'],
+        langue: 'EN',
+      },
+      {
+        nom: 'Blog Ansible',
+        url: 'https://www.ansible.com/blog',
+        description: 'Automatisation : nouvelles versions, collections, bonnes pratiques.',
+        themes: ['Infra, Cloud & DevOps'],
+        langue: 'EN',
+      },
+    ],
+  },
+  {
+    titre: 'Intelligence artificielle',
+    sources: [
+      {
+        nom: 'LeMagIT – IA',
+        url: 'https://www.lemagit.fr/',
+        description: 'Usages de l’IA en entreprise, annonces des éditeurs, réglementation (AI Act).',
+        themes: ['IA'],
+        langue: 'FR',
+      },
+      {
+        nom: 'The Hacker News – IA',
+        url: 'https://thehackernews.com/',
+        description: 'Sécurité des modèles et des agents IA, usages offensifs et défensifs.',
+        themes: ['IA', 'Cybersécurité'],
+        langue: 'EN',
+      },
+      {
+        nom: 'Annonces des éditeurs IA',
+        url: 'https://www.anthropic.com/news',
+        description:
+          'Annonces officielles des grands éditeurs (Anthropic, OpenAI, Google, Mistral AI…) pour vérifier les faits à la source.',
+        themes: ['IA'],
+        langue: 'EN',
+      },
+    ],
+  },
+];
+---
+
+<Base title="Sources suivies" description="Les sources consultées chaque semaine pour la veille.">
+  <h1>Sources suivies</h1>
+  <p class="lead">
+    Les sources consultées chaque semaine. Chaque article cite les liens précis qu'il utilise ; quand c'est possible,
+    je remonte jusqu'à la source primaire (avis de l'éditeur, fiche CVE, annonce officielle).
+  </p>
+
+  {
+    groupes.map((g) => (
+      <section>
+        <h2>{g.titre}</h2>
+        <ul class="grid list">
+          {g.sources.map((s) => (
+            <li class="card">
+              <div class="head">
+                <a href={s.url} target="_blank" rel="noopener noreferrer">
+                  <strong>{s.nom}</strong>
+                </a>
+                <span class="lang">{s.langue}</span>
+              </div>
+              <p>{s.description}</p>
+              <p class="muted themes">{s.themes.join(' · ')}</p>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))
+  }
+</Base>
+
+<style>
+  .list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .list li {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  .head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+  .lang {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0 0.35em;
+  }
+  .list p {
+    margin: 0;
+    font-size: 0.95rem;
+  }
+  .themes {
+    font-size: 0.85rem !important;
+    margin-top: auto !important;
+  }
+</style>

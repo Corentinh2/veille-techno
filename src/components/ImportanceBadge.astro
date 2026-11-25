@@ -1,0 +1,55 @@
+---
+import { IMPORTANCE_META, type Importance } from '../lib/veille';
+
+interface Props {
+  importance: Importance;
+  total?: number;
+}
+const { importance, total } = Astro.props;
+const m = IMPORTANCE_META[importance];
+---
+
+<span class={`badge badge-${importance}`} title={m.consigne}>
+  <span aria-hidden="true">{m.emoji}</span>
+  {m.label}
+  {total !== undefined && <span class="badge-score">{total}/20</span>}
+</span>
+
+<style>
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35em;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.2em 0.6em;
+    border-radius: 999px;
+    white-space: nowrap;
+    border: 1px solid transparent;
+  }
+  .badge-score {
+    font-weight: 500;
+    opacity: 0.85;
+    font-variant-numeric: tabular-nums;
+  }
+  .badge-critique {
+    color: var(--critique);
+    background: var(--critique-soft);
+    border-color: color-mix(in srgb, var(--critique) 25%, transparent);
+  }
+  .badge-eleve {
+    color: var(--eleve);
+    background: var(--eleve-soft);
+    border-color: color-mix(in srgb, var(--eleve) 25%, transparent);
+  }
+  .badge-moyen {
+    color: var(--moyen);
+    background: var(--moyen-soft);
+    border-color: color-mix(in srgb, var(--moyen) 25%, transparent);
+  }
+  .badge-info {
+    color: var(--info);
+    background: var(--info-soft);
+    border-color: color-mix(in srgb, var(--info) 25%, transparent);
+  }
+</style>

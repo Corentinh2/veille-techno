@@ -1,0 +1,180 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import ArticleCard from '../components/ArticleCard.astro';
+import {
+  CATEGORIES,
+  CATEGORY_LABELS,
+  IMPORTANCE_META,
+  byDateThenImportance,
+  editionId,
+  editionTitle,
+  importanceRank,
+  scoreTotal,
+  url,
+} from '../lib/veille';
+
+const articles = (await getCollection('articles')).sort(byDateThenImportance);
+const newest = articles[0]?.data.date ?? new Date();
+const latestEdition = articles.length ? editionId(newest) : null;
+
+// Sujets prioritaires : critiques et élevés des 30 derniers jours (par rapport au dernier article).
+const WINDOW = 30 * 86_400_000;
+const recentPriority = articles.filter(
+  (a) =>
+    (a.data.importance === 'critique' || a.data.importance === 'eleve') &&
+    newest.getTime() - a.data.date.getTime() <= WINDOW,
+);
+const priority = (
+  recentPriority.length
+    ? recentPriority
+    : articles.filter((a) => a.data.importance === 'critique' || a.data.importance === 'eleve')
+)
+  .slice()
+  .sort(
+    (a, b) =>
+      importanceRank(a.data.importance) - importanceRank(b.data.importance) ||
+      scoreTotal(b.data.score) - scoreTotal(a.data.score) ||
+      b.data.date.getTime() - a.data.date.getTime(),
+  )
+  .slice(0, 6);
+
+const priorityIds = new Set(priority.map((a) => a.id));
+const latest = articles.filter((a) => !priorityIds.has(a.id)).slice(0, 9);
+
+const countBy = (cat: string) => articles.filter((a) => a.data.category === cat).length;
+---
+
+<Base title="Veille Techno">
+  <section class="hero">
+    <h1>Veille technologique</h1>
+    <p class="lead">
+      Chaque semaine, une sélection de sujets en cybersécurité, infra/cloud/DevOps, IA, réseau et systèmes,
+      notés sur 20 selon leur impact, leur urgence, leur périmètre et leur lien avec mon environnement
+      (Windows, Linux, virtualisation, Terraform/Ansible, Nextcloud).
+    </p>
+    {
+      latestEdition && (
+        <p class="edition">
+          Dernière édition :{' '}
+          <a href={url(`archives/${latestEdition}/`)}>
+            <strong>{editionTitle(latestEdition)}</strong>
+          </a>
+        </p>
+      )
+    }
+    <ul class="legend" aria-label="Niveaux d'importance">
+      {
+        Object.entries(IMPORTANCE_META).map(([key, m]) => (
+          <li>
+            <a href={url(`articles/?importance=${key}`)}>
+              <span aria-hidden="true">{m.emoji}</span> {m.label} <span class="muted">({m.min}-{m.max})</span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <section aria-labelledby="prio">
+    <div class="section-title">
+      <h2 id="prio">À traiter en priorité</h2>
+      <a href={url('articles/?importance=critique,eleve')}>Tous les sujets critiques et élevés →</a>
+    </div>
+    {
+      priority.length ? (
+        <div class="grid">
+          {priority.map((a) => (
+            <ArticleCard article={a} />
+          ))}
+        </div>
+      ) : (
+        <p class="card muted">Aucun sujet critique ou élevé en ce moment. 🎉</p>
+      )
+    }
+  </section>
+
+  <section aria-labelledby="derniers">
+    <div class="section-title">
+      <h2 id="derniers">Derniers articles</h2>
+      <a href={url('articles/')}>Tous les articles →</a>
+    </div>
+    {
+      latest.length ? (
+        <div class="grid">
+          {latest.map((a) => (
+            <ArticleCard article={a} />
+          ))}
+        </div>
+      ) : (
+        <p class="muted">Rien de plus pour l'instant.</p>
+      )
+    }
+  </section>
+
+  <section aria-labelledby="themes">
+    <h2 id="themes">Par thème</h2>
+    <ul class="themes">
+      {
+        CATEGORIES.map((c) => (
+          <li>
+            <a class="card" href={url(`articles/?theme=${c}`)}>
+              <span>{CATEGORY_LABELS[c]}</span>
+              <span class="muted">
+                {countBy(c)} article{countBy(c) > 1 ? 's' : ''}
+              </span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+</Base>
+
+<style>
+  .hero {
+    margin-bottom: 1rem;
+  }
+  .edition {
+    margin: 0.75rem 0;
+  }
+  .legend {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    padding: 0;
+    margin: 1rem 0 0;
+    font-size: 0.9rem;
+  }
+  .legend a {
+    color: var(--text);
+    text-decoration: none;
+  }
+  .legend a:hover {
+    text-decoration: underline;
+  }
+  .themes {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  }
+  .themes a {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    text-decoration: none;
+    color: var(--text);
+    font-weight: 600;
+  }
+  .themes a:hover {
+    border-color: var(--accent);
+  }
+  .themes .muted {
+    font-weight: 400;
+    font-size: 0.9rem;
+  }
+</style>

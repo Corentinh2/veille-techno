@@ -1,0 +1,71 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getEditions } from '../../lib/editions';
+import { IMPORTANCES, IMPORTANCE_META, editionRange, editionTitle, formatShort, url } from '../../lib/veille';
+
+const editions = await getEditions();
+---
+
+<Base title="Archives" description="Toutes les éditions hebdomadaires de la veille.">
+  <h1>Archives</h1>
+  <p class="lead">Une édition par semaine, du lundi au dimanche (numérotation ISO).</p>
+
+  {
+    editions.length === 0 ? (
+      <p class="muted">Aucune édition pour l'instant.</p>
+    ) : (
+      <ul class="editions">
+        {editions.map((e) => {
+          const { start, end } = editionRange(e.id);
+          return (
+            <li class="card">
+              <a href={url(`archives/${e.id}/`)}>
+                <strong>{editionTitle(e.id)}</strong>
+              </a>
+              <span class="muted range">
+                du {formatShort(start)} au {formatShort(end)} · {e.articles.length} sujet
+                {e.articles.length > 1 ? 's' : ''}
+              </span>
+              <span class="counts">
+                {IMPORTANCES.map((i) => {
+                  const n = e.articles.filter((a) => a.data.importance === i).length;
+                  return n ? (
+                    <span title={IMPORTANCE_META[i].label}>
+                      {IMPORTANCE_META[i].emoji} {n}
+                    </span>
+                  ) : null;
+                })}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    )
+  }
+</Base>
+
+<style>
+  .editions {
+    list-style: none;
+    padding: 0;
+    margin: 1.5rem 0 0;
+    display: grid;
+    gap: 0.75rem;
+  }
+  .editions li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.4rem 1rem;
+  }
+  .range {
+    font-size: 0.92rem;
+  }
+  .counts {
+    margin-left: auto;
+    display: flex;
+    gap: 0.75rem;
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+  }
+</style>

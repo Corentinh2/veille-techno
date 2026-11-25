@@ -1,0 +1,10 @@
+---
+import Base from '../layouts/Base.astro';
+import { url } from '../lib/veille';
+---
+
+<Base title="Page introuvable">
+  <h1>Page introuvable</h1>
+  <p class="lead">Cette page n'existe pas (ou plus).</p>
+  <p><a href={url('')}>← Retour à l'accueil</a> · <a href={url('articles/')}>Tous les articles</a></p>
+</Base>

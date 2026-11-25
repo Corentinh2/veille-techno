@@ -1,0 +1,84 @@
+---
+import { render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import ArticleCard from '../../components/ArticleCard.astro';
+import { getEditions, type Edition } from '../../lib/editions';
+import { IMPORTANCES, IMPORTANCE_META, editionRange, editionTitle, formatDate, url } from '../../lib/veille';
+
+export async function getStaticPaths() {
+  const editions = await getEditions();
+  return editions.map((edition, i) => ({
+    params: { edition: edition.id },
+    props: { edition, newer: editions[i - 1]?.id, older: editions[i + 1]?.id },
+  }));
+}
+
+interface Props {
+  edition: Edition;
+  newer?: string;
+  older?: string;
+}
+const { edition, newer, older } = Astro.props;
+const title = editionTitle(edition.id);
+const { start, end } = editionRange(edition.id);
+const Chapeau = edition.chapeau ? (await render(edition.chapeau)).Content : null;
+---
+
+<Base title={title} description={edition.chapeau?.data.intro ?? `${title} : ${edition.articles.length} sujets.`}>
+  <nav class="crumbs" aria-label="Fil d'Ariane"><a href={url('archives/')}>Archives</a></nav>
+  <h1>{title}</h1>
+  <p class="muted">Du {formatDate(start)} au {formatDate(end)} · {edition.articles.length} sujet(s)</p>
+
+  {edition.chapeau && <p class="lead">{edition.chapeau.data.intro}</p>}
+  {
+    Chapeau && (
+      <div class="prose">
+        <Chapeau />
+      </div>
+    )
+  }
+
+  {
+    IMPORTANCES.map((i) => {
+      const list = edition.articles.filter((a) => a.data.importance === i);
+      return list.length ? (
+        <section>
+          <h2>
+            {IMPORTANCE_META[i].emoji} {IMPORTANCE_META[i].label}{' '}
+            <span class="muted small">— {IMPORTANCE_META[i].consigne}</span>
+          </h2>
+          <div class="grid">
+            {list.map((a) => (
+              <ArticleCard article={a} />
+            ))}
+          </div>
+        </section>
+      ) : null;
+    })
+  }
+
+  <nav class="pager" aria-label="Autres éditions">
+    {newer ? <a href={url(`archives/${newer}/`)}>← {editionTitle(newer)}</a> : <span />}
+    {older ? <a href={url(`archives/${older}/`)}>{editionTitle(older)} →</a> : <span />}
+  </nav>
+</Base>
+
+<style>
+  .crumbs {
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+  }
+  .small {
+    font-size: 0.9rem;
+    font-weight: 400;
+  }
+  .pager {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 2.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+</style>

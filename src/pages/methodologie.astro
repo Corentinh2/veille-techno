@@ -1,0 +1,220 @@
+---
+import Base from '../layouts/Base.astro';
+import ImportanceBadge from '../components/ImportanceBadge.astro';
+import { url } from '../lib/veille';
+
+const criteres = [
+  {
+    nom: 'Impact',
+    question: 'Quelle est la gravité des conséquences si rien n’est fait ?',
+    echelle: [
+      'Aucune conséquence technique',
+      'Gêne mineure, contournement simple',
+      'Dégradation de service ou fuite d’informations limitée',
+      'Panne d’un service important ou fuite de données',
+      'Compromission partielle (élévation de privilèges, accès à des données sensibles)',
+      'Compromission totale (exécution de code à distance, prise de contrôle, perte de données)',
+    ],
+  },
+  {
+    nom: 'Urgence',
+    question: 'En combien de temps faut-il réagir ?',
+    echelle: [
+      'Aucune échéance',
+      'Échéance lointaine (plus de 6 mois)',
+      'Échéance dans les 3 à 6 mois (fin de support annoncée, migration à planifier)',
+      'Correctif disponible, preuve de concept publique',
+      'Exploitation probable à court terme, fin de support imminente',
+      'Exploitation active (ex. inscrite au catalogue CISA KEV) ou 0-day sans correctif',
+    ],
+  },
+  {
+    nom: 'Périmètre',
+    question: 'Combien de systèmes ou d’utilisateurs sont concernés ?',
+    echelle: [
+      'Produit de niche, quasi aucun déploiement',
+      'Produit peu répandu',
+      'Produit répandu dans certains secteurs',
+      'Produit très répandu en entreprise',
+      'Composant présent sur une majorité de serveurs ou de postes',
+      'Quasi-universel (OS majeur, bibliothèque omniprésente, protocole de base)',
+    ],
+  },
+  {
+    nom: 'Pertinence pour moi',
+    question:
+      'Quel lien avec mon environnement : Windows, Linux, hyperviseurs, Terraform/Ansible, Nextcloud, réseau ?',
+    echelle: [
+      'Aucun lien',
+      'Lien très indirect, culture générale',
+      'Technologie voisine de celles que j’utilise',
+      'Technologie que je croise en entreprise sans l’administrer',
+      'Technologie que j’administre ou que j’utilise régulièrement',
+      'Touche directement un système que j’administre en production',
+    ],
+  },
+];
+---
+
+<Base
+  title="Méthodologie"
+  description="Comment chaque sujet de veille est noté sur 20 et classé par niveau d'importance."
+>
+  <article class="prose-wide">
+    <h1>Méthodologie</h1>
+    <p class="lead">
+      Chaque sujet est noté sur <strong>4 critères de 0 à 5</strong>, soit une note sur 20. Le total détermine le
+      niveau d'importance et donc ce que je dois faire.
+    </p>
+
+    <h2>Les 4 critères</h2>
+    <div class="criteres">
+      {
+        criteres.map((c, i) => (
+          <section class="card">
+            <h3>
+              {i + 1}. {c.nom}
+            </h3>
+            <p class="muted">{c.question}</p>
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Note</th>
+                  <th scope="col">Signification</th>
+                </tr>
+              </thead>
+              <tbody>
+                {c.echelle.map((txt, n) => (
+                  <tr>
+                    <td class="num">{n}</td>
+                    <td>{txt}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+        ))
+      }
+    </div>
+
+    <h2>Les niveaux d'importance</h2>
+    <div class="table-wrap card">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Niveau</th>
+            <th scope="col">Total</th>
+            <th scope="col">Exemples typiques</th>
+            <th scope="col">Réaction</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><ImportanceBadge importance="critique" /></td>
+            <td class="num">16-20</td>
+            <td>Faille activement exploitée ou CVSS ≥ 9 sur un produit courant</td>
+            <td><strong>Action immédiate</strong></td>
+          </tr>
+          <tr>
+            <td><ImportanceBadge importance="eleve" /></td>
+            <td class="num">12-15</td>
+            <td>Faille importante, fin de support, changement majeur</td>
+            <td>À traiter dans la semaine</td>
+          </tr>
+          <tr>
+            <td><ImportanceBadge importance="moyen" /></td>
+            <td class="num">8-11</td>
+            <td>Nouveauté utile, tendance à suivre</td>
+            <td>À lire, éventuellement tester</td>
+          </tr>
+          <tr>
+            <td><ImportanceBadge importance="info" /></td>
+            <td class="num">0-7</td>
+            <td>Actualité générale du secteur</td>
+            <td>Culture générale</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted small">
+      Une faille activement exploitée ou notée CVSS ≥ 9 sur un produit courant obtient presque mécaniquement 4 ou 5
+      en impact et en urgence : elle atteint donc le niveau critique dès que le périmètre et la pertinence suivent.
+      Le site vérifie automatiquement, à chaque build, que le niveau affiché correspond bien au total.
+    </p>
+
+    <h2>Exemple de calcul</h2>
+    <div class="card example">
+      <p>
+        <strong>Porte dérobée dans xz-utils (CVE-2024-3094)</strong>
+      </p>
+      <ul>
+        <li>Impact 5 : accès à distance via SSH sur les machines touchées.</li>
+        <li>Urgence 4 : code malveillant publié dans des versions officielles, retour arrière à faire tout de suite.</li>
+        <li>Périmètre 4 : xz est présent sur presque toutes les distributions Linux, mais seules des versions récentes (surtout de test) étaient touchées.</li>
+        <li>Pertinence 5 : j'administre des serveurs Linux exposés en SSH.</li>
+      </ul>
+      <p>
+        Total <strong>18/20</strong> → <ImportanceBadge importance="critique" />.
+        <a href={url('articles/2024-s13/xz-utils-porte-derobee/')}>Voir l'article</a>
+      </p>
+    </div>
+
+    <h2>Le « Que dois-je faire ? »</h2>
+    <p>Chaque article se termine par une ou plusieurs actions concrètes :</p>
+    <ul>
+      <li><strong>Patcher</strong> : appliquer un correctif ou une mesure de contournement.</li>
+      <li><strong>Tester</strong> : évaluer un outil, une version ou une configuration en lab.</li>
+      <li><strong>Surveiller</strong> : suivre l'évolution (publication d'un correctif, adoption, calendrier).</li>
+      <li><strong>Rien</strong> : sujet de culture générale, aucune action requise.</li>
+    </ul>
+
+    <h2>Processus de rédaction</h2>
+    <ol>
+      <li>Collecte de l'actualité des 7 derniers jours sur les 4 thèmes, à partir des <a href={url('sources/')}>sources suivies</a>.</li>
+      <li>Sélection de 8 à 12 sujets et notation selon les critères ci-dessus.</li>
+      <li>Rédaction en français, avec mes propres mots, sans copier les sources, toujours avec les liens.</li>
+      <li>Vérification de chaque fait (numéro de CVE, versions, dates) contre sa source.</li>
+      <li>Build du site : le schéma refuse un article dont le niveau ne correspond pas au score, ou sans source.</li>
+    </ol>
+    <p class="muted small">
+      La collecte et le premier jet sont assistés par une IA (Claude Code) ; chaque article est relu, vérifié et
+      validé par moi avant publication.
+    </p>
+  </article>
+</Base>
+
+<style>
+  .prose-wide {
+    max-width: 880px;
+  }
+  .criteres {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
+  }
+  .criteres h3 {
+    margin: 0 0 0.25rem;
+  }
+  .criteres .muted {
+    margin: 0 0 0.6rem;
+    font-size: 0.95rem;
+  }
+  .num {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .table-wrap {
+    overflow-x: auto;
+    padding: 0.5rem;
+  }
+  .small {
+    font-size: 0.9rem;
+  }
+  .example ul {
+    margin: 0.5rem 0;
+  }
+  .example p {
+    margin: 0.4rem 0;
+  }
+</style>

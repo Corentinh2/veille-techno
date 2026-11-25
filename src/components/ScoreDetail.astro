@@ -1,0 +1,99 @@
+---
+import { CRITERIA, type Importance, type Score, scoreTotal } from '../lib/veille';
+
+interface Props {
+  score: Score;
+  importance: Importance;
+}
+const { score, importance } = Astro.props;
+const total = scoreTotal(score);
+---
+
+<div class="score">
+  <div class="score-head">
+    <span>Note</span>
+    <strong class={`total t-${importance}`}>{total}<small>/20</small></strong>
+  </div>
+  <ul>
+    {
+      CRITERIA.map((c) => (
+        <li>
+          <span class="label">{c.label}</span>
+          <span class="bar" role="img" aria-label={`${score[c.key]} sur 5`}>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <span class={n <= score[c.key] ? `on t-${importance}` : ''} />
+            ))}
+          </span>
+          <span class="val">{score[c.key]}/5</span>
+        </li>
+      ))
+    }
+  </ul>
+</div>
+
+<style>
+  .score-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.5rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  .total {
+    font-size: 1.6rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .total small {
+    font-size: 0.9rem;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.4rem;
+  }
+  li {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 0.6rem;
+    align-items: center;
+    font-size: 0.88rem;
+  }
+  .bar {
+    display: inline-flex;
+    gap: 3px;
+  }
+  .bar span {
+    width: 14px;
+    height: 8px;
+    border-radius: 2px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+  }
+  .val {
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    width: 2.2em;
+    text-align: right;
+  }
+  .t-critique {
+    color: var(--critique);
+  }
+  .t-eleve {
+    color: var(--eleve);
+  }
+  .t-moyen {
+    color: var(--moyen);
+  }
+  .t-info {
+    color: var(--info);
+  }
+  .bar .on {
+    background: currentColor;
+    border-color: currentColor;
+  }
+</style>

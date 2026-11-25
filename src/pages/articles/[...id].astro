@@ -1,0 +1,296 @@
+---
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import ImportanceBadge from '../../components/ImportanceBadge.astro';
+import ScoreDetail from '../../components/ScoreDetail.astro';
+import {
+  ACTION_LABELS,
+  CATEGORY_LABELS,
+  IMPORTANCE_META,
+  editionId,
+  editionTitle,
+  formatDate,
+  scoreTotal,
+  url,
+} from '../../lib/veille';
+
+export async function getStaticPaths() {
+  const articles = await getCollection('articles');
+  return articles.map((article) => ({ params: { id: article.id }, props: { article } }));
+}
+
+interface Props {
+  article: CollectionEntry<'articles'>;
+}
+const { article } = Astro.props;
+const { data } = article;
+const { Content } = await render(article);
+const total = scoreTotal(data.score);
+const edition = editionId(data.date);
+const hostOf = (u: string) => {
+  try {
+    return new URL(u).hostname.replace(/^www\./, '');
+  } catch {
+    return u;
+  }
+};
+---
+
+<Base title={data.title} description={data.summary}>
+  <nav class="crumbs" aria-label="Fil d'Ariane">
+    <a href={url('articles/')}>Articles</a> ›
+    <a href={url(`articles/?theme=${data.category}`)}>{CATEGORY_LABELS[data.category]}</a>
+  </nav>
+
+  <div class="layout">
+    <article class="main">
+      <header>
+        <div class="meta">
+          <ImportanceBadge importance={data.importance} total={total} />
+          <span class="muted">{CATEGORY_LABELS[data.category]}</span>
+          {data.exemple && <span class="exemple">Article d'exemple</span>}
+        </div>
+        <h1>{data.title}</h1>
+        <p class="muted when">
+          Publié le <time datetime={data.date.toISOString()}>{formatDate(data.date)}</time> ·
+          <a href={url(`archives/${edition}/`)}>{editionTitle(edition)}</a>
+        </p>
+        <p class="lead">{data.summary}</p>
+      </header>
+
+      <section class={`actions card a-${data.importance}`} aria-labelledby="que-faire">
+        <h2 id="que-faire">
+          Que dois-je faire ? <span class="consigne">{IMPORTANCE_META[data.importance].consigne}</span>
+        </h2>
+        <ul>
+          {
+            data.actions.map((a) => (
+              <li>
+                <span class={`atype atype-${a.type}`}>{ACTION_LABELS[a.type]}</span>
+                <span>{a.detail}</span>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+
+      <div class="prose">
+        <Content />
+      </div>
+
+      <section aria-labelledby="sources">
+        <h2 id="sources">Sources</h2>
+        <ol class="sources">
+          {
+            data.sources.map((s) => (
+              <li>
+                <a href={s.url} target="_blank" rel="noopener noreferrer">
+                  {s.title}
+                </a>{' '}
+                <span class="muted">({hostOf(s.url)})</span>
+              </li>
+            ))
+          }
+        </ol>
+      </section>
+    </article>
+
+    <aside class="side">
+      <div class="card">
+        <ScoreDetail score={data.score} importance={data.importance} />
+        <p class="method muted">
+          <a href={url('methodologie/')}>Comment cette note est calculée</a>
+        </p>
+      </div>
+      {
+        (data.cve?.length || data.cvss !== undefined || data.tags.length > 0) && (
+          <div class="card facts">
+            {data.cve?.length ? (
+              <div>
+                <h3>CVE</h3>
+                <ul>
+                  {data.cve.map((c) => (
+                    <li>
+                      <a href={`https://nvd.nist.gov/vuln/detail/${c}`} target="_blank" rel="noopener noreferrer">
+                        <code>{c}</code>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {data.cvss !== undefined && (
+              <div>
+                <h3>CVSS</h3>
+                <p>
+                  <strong>{data.cvss.toFixed(1)}</strong> / 10
+                </p>
+              </div>
+            )}
+            {data.tags.length > 0 && (
+              <div>
+                <h3>Mots-clés</h3>
+                <p class="tags">
+                  {data.tags.map((t) => (
+                    <a href={url(`articles/?q=${encodeURIComponent(t.toLowerCase())}`)}>#{t}</a>
+                  ))}
+                </p>
+              </div>
+            )}
+          </div>
+        )
+      }
+    </aside>
+  </div>
+</Base>
+
+<style>
+  .crumbs {
+    font-size: 0.9rem;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+  .layout {
+    display: grid;
+    gap: 2rem;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    align-items: start;
+  }
+  @media (max-width: 860px) {
+    .layout {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .side {
+    display: grid;
+    gap: 1rem;
+    position: sticky;
+    top: 84px;
+  }
+  @media (max-width: 860px) {
+    .side {
+      position: static;
+    }
+  }
+  .meta {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    flex-wrap: wrap;
+    font-size: 0.9rem;
+    margin-bottom: 0.6rem;
+  }
+  .exemple {
+    font-size: 0.8rem;
+    border: 1px dashed var(--border);
+    color: var(--muted);
+    padding: 0.05em 0.5em;
+    border-radius: 999px;
+  }
+  .when {
+    margin: 0 0 1rem;
+    font-size: 0.95rem;
+  }
+  .actions {
+    margin: 1.5rem 0;
+    border-left-width: 4px;
+  }
+  .a-critique {
+    border-left-color: var(--critique);
+  }
+  .a-eleve {
+    border-left-color: var(--eleve);
+  }
+  .a-moyen {
+    border-left-color: var(--moyen);
+  }
+  .a-info {
+    border-left-color: var(--info);
+  }
+  .actions h2 {
+    margin: 0 0 0.6rem;
+    font-size: 1.1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: baseline;
+  }
+  .consigne {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--muted);
+  }
+  .actions ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+  .actions li {
+    display: flex;
+    gap: 0.6rem;
+    align-items: baseline;
+  }
+  .atype {
+    flex: none;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 0.15em 0.5em;
+    border-radius: 4px;
+    background: var(--surface-2);
+    color: var(--muted);
+    min-width: 6.5em;
+    text-align: center;
+  }
+  .atype-patcher {
+    background: var(--critique-soft);
+    color: var(--critique);
+  }
+  .atype-tester {
+    background: var(--eleve-soft);
+    color: var(--eleve);
+  }
+  .atype-surveiller {
+    background: var(--info-soft);
+    color: var(--info);
+  }
+  .sources {
+    padding-left: 1.2rem;
+  }
+  .sources li {
+    margin-bottom: 0.35rem;
+    overflow-wrap: anywhere;
+  }
+  .method {
+    margin: 0.8rem 0 0;
+    font-size: 0.85rem;
+  }
+  .facts {
+    display: grid;
+    gap: 0.75rem;
+  }
+  .facts h3 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    margin: 0 0 0.25rem;
+  }
+  .facts ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .facts p {
+    margin: 0;
+  }
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    font-size: 0.9rem;
+  }
+</style>
