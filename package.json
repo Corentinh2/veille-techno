@@ -6,6 +6,7 @@
   "description": "Site de veille technologique (cybersécurité, infra/cloud/DevOps, IA, réseau/OS)",
   "scripts": {
     "dev": "astro dev",
+    "prebuild": "node scripts/verifier-contenu.mjs",
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",

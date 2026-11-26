@@ -11,7 +11,7 @@ const articles = (await getCollection('articles')).sort(byDateThenImportance);
   <h1>Articles</h1>
   <p class="lead">Tous les sujets de veille. Filtre par thème et par niveau d'importance.</p>
 
-  <form class="filters card" id="filtres" onsubmit="return false">
+  <form class="filters card" id="filtres">
     <fieldset>
       <legend>Thème</legend>
       <div class="chips">
@@ -102,6 +102,7 @@ const articles = (await getCollection('articles')).sort(byDateThenImportance);
   }
   search.value = params.get('q') ?? '';
 
+  form.addEventListener('submit', (e) => e.preventDefault());
   form.addEventListener('input', () => apply());
   document.getElementById('reset')!.addEventListener('click', () => {
     form.reset();

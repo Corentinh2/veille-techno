@@ -40,7 +40,8 @@ const articles = defineCollection({
         .array(
           z.object({
             title: z.string().min(2),
-            url: z.url(),
+            // Uniquement http(s) : refuse javascript:, data:, etc. (XSS).
+            url: z.url({ protocol: /^https?$/, error: 'Seuls les liens http:// ou https:// sont acceptés.' }),
           }),
         )
         .min(1),

@@ -54,6 +54,17 @@ Aucune bibliothèque JavaScript côté navigateur (pas de React, jQuery, etc.), 
 
 Le build **échoue volontairement** si un article est mal formé : niveau d'importance incohérent avec la note, source manquante, URL invalide, date absente. Une erreur ne peut donc pas être publiée par accident.
 
+## Sécurité
+
+| Mesure | Rôle |
+| --- | --- |
+| Politique de sécurité du contenu (CSP) | Seuls les scripts du site, identifiés par leur empreinte SHA-256, peuvent s'exécuter ; tout script injecté est bloqué par le navigateur |
+| Contrôle des articles avant chaque build | Refuse le HTML brut et les liens non `http(s)` dans le texte (`scripts/verifier-contenu.mjs`) |
+| Schéma des articles | Les liens sources doivent être en `http://` ou `https://` (refus de `javascript:`, `data:`…) |
+| Pipeline de déploiement | Droits minimaux par étape ; actions GitHub épinglées par empreinte |
+| Dependabot | Alertes et mises à jour automatiques des dépendances et des actions |
+| Veille automatisée | Le contenu web est traité comme non fiable ; l'agent ne peut modifier que les fichiers de l'édition, et chaque édition passe par une relecture humaine |
+
 ## Chiffres du site
 
 | | |
